@@ -246,6 +246,7 @@ async function generateImage(prompt: string, refs: string[]): Promise<string> {
 const dataUrlToBytes = (dataUrl: string) =>
   Uint8Array.from(atob(dataUrl.split(',')[1]), (c) => c.charCodeAt(0));
 
+// Creates one campaign in one language with an image for each format.
 // event is null for general hotel content.
 async function createCampaign(
   event: (ExtractedEvent & { id: string }) | null,
@@ -326,6 +327,7 @@ Deno.serve(async (req) => {
 
   const { data: schedule } = await db.from('automation_schedules').select('*').eq('job_name', JOB).single();
   if (!schedule || !schedule.enabled) return json({ status: 'skipped', reason: 'Event discovery is disabled' });
+
   // The daily scheduler call runs only when the 5-day window is due. "Run Now" always runs.
   if (auth.cron && new Date(schedule.next_run_at) > new Date()) {
     return json({ status: 'skipped', reason: 'Not due yet' });
@@ -379,6 +381,7 @@ Deno.serve(async (req) => {
           source_url: ev.source_url,
           confidence: ev.confidence,
           marketing_relevance: ev.marketing_relevance,
+          recommended_features: ev.recommended_features ?? [],
           verified_on: today,
           status: changed ? 'updated' : existing.status,
           updated_at: new Date().toISOString(),
@@ -394,6 +397,7 @@ Deno.serve(async (req) => {
           verified_on: today,
           confidence: ev.confidence,
           marketing_relevance: ev.marketing_relevance,
+          recommended_features: ev.recommended_features ?? [],
         }).select('id').single();
         if (error || !row) { errors.push(`Event insert failed for ${ev.name}: ${error?.message}`); continue; }
         newEvents++;
